@@ -138,7 +138,7 @@
 
 <header>
   <h1>Schnellerfassung</h1>
-  <div class="subline">Firma · Datum · Uhrzeit · Notiz · Bus · Fahrer → per WhatsApp</div>
+  <div class="subline">Firma · Datum · Uhrzeit · Fahrt nach · Bus · Fahrer → per WhatsApp</div>
 </header>
 
 <div class="summary" id="summary">Noch nichts ausgewählt.</div>
@@ -162,8 +162,8 @@
 </section>
 
 <section>
-  <h2>Notiz</h2>
-  <textarea id="note" placeholder="Freitext…" autocomplete="off" autocapitalize="sentences"></textarea>
+  <h2>Fahrt nach</h2>
+  <textarea id="note" placeholder="Zielort…" autocomplete="off" autocapitalize="sentences"></textarea>
 </section>
 
 <section>
@@ -389,7 +389,7 @@
       "Bus:     " + state.bus,
       "Fahrer:  " + state.driver,
       "",
-      "Notiz: " + (note || "(keine)")
+      "Fahrt nach: " + (note || "(offen)")
     ];
     const wa = "https://wa.me/" + encodeURIComponent(normalizePhone(state.phone))
       + "?text=" + encodeURIComponent(lines.join("\n"));
