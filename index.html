@@ -138,7 +138,7 @@
 
 <header>
   <h1>Schnellerfassung</h1>
-  <div class="subline">Firma · Datum · Uhrzeit · Notiz · Bus · Fahrer → per E-Mail</div>
+  <div class="subline">Firma · Datum · Uhrzeit · Notiz · Bus · Fahrer → per WhatsApp</div>
 </header>
 
 <div class="summary" id="summary">Noch nichts ausgewählt.</div>
@@ -178,7 +178,7 @@
 
 <div class="footer">
   <button class="reset-btn" id="resetBtn" aria-label="Zurücksetzen">↺</button>
-  <button class="send-btn" id="sendBtn" disabled>Per E-Mail senden</button>
+  <button class="send-btn" id="sendBtn" disabled>Per WhatsApp senden</button>
 </div>
 
 <script>
@@ -189,9 +189,11 @@
   const BUS_OPTIONS = ["N", "VB", "<1.4t", ">1.4t"];
   const DRIVERS = ["Luigi", "Fatih", "Mathias", "Stefan", "Pedro", "Alessandro", "Daniel", "Asen", "Jorgo"];
 
+  const DEFAULT_PHONE = "01723139615";
+
   const state = {
     firms: loadFirms(),
-    email: loadEmail(),
+    phone: loadPhone(),
     firm: null,     // index 0..4
     date: null,     // ISO yyyy-mm-dd
     time: null,     // "HH:MM"
@@ -217,11 +219,24 @@
   function saveFirms() {
     try { localStorage.setItem(STORAGE_KEY + ".firms", JSON.stringify(state.firms)); } catch (e) {}
   }
-  function loadEmail() {
-    try { return localStorage.getItem(STORAGE_KEY + ".email") || ""; } catch (e) { return ""; }
+  function loadPhone() {
+    try { return localStorage.getItem(STORAGE_KEY + ".phone") || ""; } catch (e) { return ""; }
   }
-  function saveEmail() {
-    try { localStorage.setItem(STORAGE_KEY + ".email", state.email); } catch (e) {}
+  function savePhone() {
+    try { localStorage.setItem(STORAGE_KEY + ".phone", state.phone); } catch (e) {}
+  }
+  // Normalisiert deutsche Handynummern für die wa.me-URL:
+  //   01723139615   → 491723139615
+  //   0049 172 …    → 49172…
+  //   +49 172 …     → 49172…
+  //   491723139615  → unverändert
+  function normalizePhone(input) {
+    if (!input) return "";
+    let s = String(input).replace(/[^\d+]/g, "");
+    if (s.startsWith("+")) s = s.slice(1);
+    else if (s.startsWith("00")) s = s.slice(2);
+    else if (s.startsWith("0")) s = "49" + s.slice(1);
+    return s;
   }
 
   function pad(n) { return n < 10 ? "0" + n : "" + n; }
@@ -355,32 +370,30 @@
   document.getElementById("sendBtn").addEventListener("click", () => {
     if (state.firm === null || !state.date || !state.time || !state.bus || !state.driver) return;
 
-    if (!state.email) {
-      const entered = prompt("An welche E-Mail-Adresse soll's gehen?\n(Wird nur lokal auf dem Handy gespeichert.)", "");
+    if (!state.phone) {
+      const entered = prompt("An welche WhatsApp-Nummer soll's gehen?\n(Wird nur lokal auf dem Handy gespeichert.)", DEFAULT_PHONE);
       if (!entered) return;
-      state.email = entered.trim();
-      saveEmail();
+      state.phone = entered.trim();
+      savePhone();
     }
 
     const firm = state.firms[state.firm];
     const dateLabel = selectedDateLabel();
     const note = document.getElementById("note").value.trim();
 
-    const subject = "Schnellerfassung: " + firm + " – " + dateLabel + " " + state.time + " – Bus " + state.bus + " – " + state.driver;
-    const bodyLines = [
-      "Firma:    " + firm,
-      "Datum:    " + dateLabel,
-      "Uhrzeit:  " + state.time + " Uhr",
-      "Bus:      " + state.bus,
-      "Fahrer:   " + state.driver,
+    const lines = [
+      "*Schnellerfassung*",
+      "Firma:   " + firm,
+      "Datum:   " + dateLabel,
+      "Uhrzeit: " + state.time + " Uhr",
+      "Bus:     " + state.bus,
+      "Fahrer:  " + state.driver,
       "",
-      "Notiz:",
-      note || "(keine)"
+      "Notiz: " + (note || "(keine)")
     ];
-    const mailto = "mailto:" + encodeURIComponent(state.email)
-      + "?subject=" + encodeURIComponent(subject)
-      + "&body=" + encodeURIComponent(bodyLines.join("\n"));
-    window.location.href = mailto;
+    const wa = "https://wa.me/" + encodeURIComponent(normalizePhone(state.phone))
+      + "?text=" + encodeURIComponent(lines.join("\n"));
+    window.location.href = wa;
   });
 
   document.getElementById("resetBtn").addEventListener("click", () => {
@@ -398,10 +411,10 @@
       const trimmed = next.trim();
       if (trimmed) state.firms[i] = trimmed;
     }
-    const mail = prompt("Empfänger-E-Mail (wird nur lokal gespeichert):", state.email);
-    if (mail !== null) {
-      state.email = mail.trim();
-      saveEmail();
+    const ph = prompt("WhatsApp-Nummer des Empfängers (wird nur lokal gespeichert):", state.phone || DEFAULT_PHONE);
+    if (ph !== null) {
+      state.phone = ph.trim();
+      savePhone();
     }
     saveFirms();
     renderFirms(); updateSummary();
