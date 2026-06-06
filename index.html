@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Schnellerfassung">
+<title>Schnellerfassung</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --muted: #334155;
+    --text: #f1f5f9;
+    --sub: #94a3b8;
+    --accent: #3b82f6;
+    --accent-strong: #2563eb;
+    --ok: #10b981;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.4;
+    overscroll-behavior-y: contain;
+  }
+  body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 96px) env(safe-area-inset-left);
+  }
+  header {
+    padding: 16px 16px 8px;
+  }
+  h1 {
+    font-size: 22px; margin: 0 0 4px; font-weight: 700;
+  }
+  .subline {
+    color: var(--sub); font-size: 14px; margin-bottom: 8px;
+  }
+  section {
+    padding: 12px 16px 4px;
+  }
+  h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--sub); margin: 0 0 10px; font-weight: 600;
+  }
+  .grid {
+    display: grid; gap: 10px;
+  }
+  .grid-firms   { grid-template-columns: repeat(2, 1fr); }
+  .grid-dates   { grid-template-columns: repeat(2, 1fr); }
+  .grid-times   { grid-template-columns: repeat(4, 1fr); }
+  button.chip {
+    appearance: none; border: 1.5px solid var(--border);
+    background: var(--card); color: var(--text);
+    padding: 14px 10px; border-radius: 14px;
+    font-size: 16px; font-weight: 600;
+    min-height: 52px; touch-action: manipulation;
+    transition: transform 0.05s ease, background 0.15s ease, border-color 0.15s ease;
+    text-align: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  }
+  button.chip .sub {
+    font-size: 12px; font-weight: 500; color: var(--sub);
+  }
+  button.chip:active { transform: scale(0.97); }
+  button.chip.selected {
+    background: var(--accent);
+    border-color: var(--accent-strong);
+    color: white;
+  }
+  button.chip.selected .sub { color: rgba(255,255,255,0.85); }
+  .grid-times button.chip {
+    padding: 12px 4px; min-height: 46px; font-size: 15px;
+  }
+  textarea {
+    width: 100%; min-height: 110px; padding: 14px;
+    background: var(--card); color: var(--text);
+    border: 1.5px solid var(--border); border-radius: 14px;
+    font-size: 16px; font-family: inherit; resize: vertical;
+    -webkit-appearance: none;
+  }
+  textarea:focus {
+    outline: none; border-color: var(--accent);
+  }
+  .footer {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    padding: 12px 16px calc(env(safe-area-inset-bottom) + 12px);
+    background: linear-gradient(to top, var(--bg) 80%, rgba(15,23,42,0));
+    display: flex; gap: 10px;
+  }
+  .send-btn {
+    flex: 1; appearance: none; border: 0;
+    background: var(--ok); color: white;
+    padding: 16px; border-radius: 14px;
+    font-size: 17px; font-weight: 700;
+    touch-action: manipulation;
+  }
+  .send-btn:disabled {
+    background: var(--muted); color: var(--sub);
+  }
+  .send-btn:active:not(:disabled) { transform: scale(0.98); }
+  .reset-btn {
+    appearance: none; border: 1.5px solid var(--border);
+    background: var(--card); color: var(--text);
+    padding: 16px 18px; border-radius: 14px;
+    font-size: 17px; font-weight: 600;
+  }
+  .summary {
+    margin: 4px 16px 0;
+    padding: 12px 14px;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    font-size: 14px;
+    color: var(--sub);
+  }
+  .summary b { color: var(--text); font-weight: 600; }
+  .firm-label {
+    font-size: 17px;
+  }
+  /* Edit-Modus für Firmennamen */
+  .edit-link {
+    float: right; font-size: 13px; color: var(--accent);
+    text-decoration: none; font-weight: 500;
+    padding: 2px 8px; border-radius: 8px;
+  }
+  .edit-link:active { background: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Schnellerfassung</h1>
+  <div class="subline">Firma · Datum · Uhrzeit · Notiz → per E-Mail</div>
+</header>
+
+<div class="summary" id="summary">Noch nichts ausgewählt.</div>
+
+<section>
+  <h2>
+    Firma
+    <a href="#" class="edit-link" id="editFirms">bearbeiten</a>
+  </h2>
+  <div class="grid grid-firms" id="firms"></div>
+</section>
+
+<section>
+  <h2>Datum</h2>
+  <div class="grid grid-dates" id="dates"></div>
+</section>
+
+<section>
+  <h2>Uhrzeit</h2>
+  <div class="grid grid-times" id="times"></div>
+</section>
+
+<section>
+  <h2>Notiz</h2>
+  <textarea id="note" placeholder="Freitext…" autocomplete="off" autocapitalize="sentences"></textarea>
+</section>
+
+<div class="footer">
+  <button class="reset-btn" id="resetBtn" aria-label="Zurücksetzen">↺</button>
+  <button class="send-btn" id="sendBtn" disabled>Per E-Mail senden</button>
+</div>
+
+<script>
+  const STORAGE_KEY = "schnellerfassung.v1";
+
+  const DEFAULT_FIRMS = ["Firma 1", "Firma 2", "Firma 3", "Firma 4", "Firma 5"];
+  const WEEKDAYS_SHORT = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+
+  const state = {
+    firms: loadFirms(),
+    email: loadEmail(),
+    firm: null,     // index 0..4
+    date: null,     // ISO yyyy-mm-dd
+    time: null,     // "HH:MM"
+  };
+
+  function loadFirms() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY + ".firms");
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr) && arr.length === 5) return arr;
+      }
+    } catch (e) {}
+    return [...DEFAULT_FIRMS];
+  }
+  function saveFirms() {
+    try { localStorage.setItem(STORAGE_KEY + ".firms", JSON.stringify(state.firms)); } catch (e) {}
+  }
+  function loadEmail() {
+    try { return localStorage.getItem(STORAGE_KEY + ".email") || ""; } catch (e) { return ""; }
+  }
+  function saveEmail() {
+    try { localStorage.setItem(STORAGE_KEY + ".email", state.email); } catch (e) {}
+  }
+
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+
+  function fmtDateGerman(d) {
+    return pad(d.getDate()) + "." + pad(d.getMonth() + 1) + "." + d.getFullYear();
+  }
+  function isoDate(d) {
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+
+  function renderFirms() {
+    const wrap = document.getElementById("firms");
+    wrap.innerHTML = "";
+    state.firms.forEach((name, i) => {
+      const b = document.createElement("button");
+      b.className = "chip" + (state.firm === i ? " selected" : "");
+      b.innerHTML = '<span class="firm-label"></span>';
+      b.querySelector(".firm-label").textContent = name;
+      b.addEventListener("click", () => {
+        state.firm = (state.firm === i ? null : i);
+        renderFirms(); updateSummary();
+      });
+      wrap.appendChild(b);
+    });
+  }
+
+  function renderDates() {
+    const wrap = document.getElementById("dates");
+    wrap.innerHTML = "";
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      const iso = isoDate(d);
+      const label = i === 0 ? "Heute" : i === 1 ? "Morgen" : WEEKDAYS_SHORT[d.getDay()];
+      const sub = pad(d.getDate()) + "." + pad(d.getMonth() + 1) + ".";
+      const b = document.createElement("button");
+      b.className = "chip" + (state.date === iso ? " selected" : "");
+      b.innerHTML = '<span></span><span class="sub"></span>';
+      b.children[0].textContent = label;
+      b.children[1].textContent = sub;
+      b.addEventListener("click", () => {
+        state.date = (state.date === iso ? null : iso);
+        renderDates(); updateSummary();
+      });
+      wrap.appendChild(b);
+    }
+  }
+
+  function renderTimes() {
+    const wrap = document.getElementById("times");
+    wrap.innerHTML = "";
+    for (let h = 6; h <= 18; h++) {
+      for (let m of [0, 30]) {
+        if (h === 18 && m === 30) continue; // Stop bei 18:00
+        const t = pad(h) + ":" + pad(m);
+        const b = document.createElement("button");
+        b.className = "chip" + (state.time === t ? " selected" : "");
+        b.textContent = t;
+        b.addEventListener("click", () => {
+          state.time = (state.time === t ? null : t);
+          renderTimes(); updateSummary();
+        });
+        wrap.appendChild(b);
+      }
+    }
+  }
+
+  function selectedDateLabel() {
+    if (!state.date) return null;
+    const [y, mo, d] = state.date.split("-").map(Number);
+    const dt = new Date(y, mo - 1, d);
+    return WEEKDAYS_SHORT[dt.getDay()] + " " + pad(d) + "." + pad(mo) + "." + y;
+  }
+
+  function updateSummary() {
+    const parts = [];
+    if (state.firm !== null) parts.push("<b>" + escapeHtml(state.firms[state.firm]) + "</b>");
+    if (state.date) parts.push("<b>" + escapeHtml(selectedDateLabel()) + "</b>");
+    if (state.time) parts.push("<b>" + state.time + " Uhr</b>");
+    document.getElementById("summary").innerHTML =
+      parts.length ? parts.join(" · ") : "Noch nichts ausgewählt.";
+
+    const ready = state.firm !== null && state.date && state.time;
+    document.getElementById("sendBtn").disabled = !ready;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  document.getElementById("sendBtn").addEventListener("click", () => {
+    if (state.firm === null || !state.date || !state.time) return;
+
+    if (!state.email) {
+      const entered = prompt("An welche E-Mail-Adresse soll's gehen?\n(Wird nur lokal auf dem Handy gespeichert.)", "");
+      if (!entered) return;
+      state.email = entered.trim();
+      saveEmail();
+    }
+
+    const firm = state.firms[state.firm];
+    const dateLabel = selectedDateLabel();
+    const note = document.getElementById("note").value.trim();
+
+    const subject = "Schnellerfassung: " + firm + " – " + dateLabel + " " + state.time;
+    const bodyLines = [
+      "Firma:    " + firm,
+      "Datum:    " + dateLabel,
+      "Uhrzeit:  " + state.time + " Uhr",
+      "",
+      "Notiz:",
+      note || "(keine)"
+    ];
+    const mailto = "mailto:" + encodeURIComponent(state.email)
+      + "?subject=" + encodeURIComponent(subject)
+      + "&body=" + encodeURIComponent(bodyLines.join("\n"));
+    window.location.href = mailto;
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    state.firm = null; state.date = null; state.time = null;
+    document.getElementById("note").value = "";
+    renderFirms(); renderDates(); renderTimes(); updateSummary();
+  });
+
+  // Firmennamen + E-Mail umbenennen/setzen
+  document.getElementById("editFirms").addEventListener("click", (e) => {
+    e.preventDefault();
+    for (let i = 0; i < 5; i++) {
+      const next = prompt("Name für Firma " + (i + 1) + ":", state.firms[i]);
+      if (next === null) return; // Abbruch
+      const trimmed = next.trim();
+      if (trimmed) state.firms[i] = trimmed;
+    }
+    const mail = prompt("Empfänger-E-Mail (wird nur lokal gespeichert):", state.email);
+    if (mail !== null) {
+      state.email = mail.trim();
+      saveEmail();
+    }
+    saveFirms();
+    renderFirms(); updateSummary();
+  });
+
+  renderFirms(); renderDates(); renderTimes(); updateSummary();
+</script>
+
+</body>
+</html>
