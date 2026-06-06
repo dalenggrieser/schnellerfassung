@@ -54,6 +54,7 @@
   .grid-firms   { grid-template-columns: repeat(2, 1fr); }
   .grid-dates   { grid-template-columns: repeat(2, 1fr); }
   .grid-times   { grid-template-columns: repeat(4, 1fr); }
+  .grid-bus     { grid-template-columns: repeat(4, 1fr); }
   button.chip {
     appearance: none; border: 1.5px solid var(--border);
     background: var(--card); color: var(--text);
@@ -136,7 +137,7 @@
 
 <header>
   <h1>Schnellerfassung</h1>
-  <div class="subline">Firma · Datum · Uhrzeit · Notiz → per E-Mail</div>
+  <div class="subline">Firma · Datum · Uhrzeit · Notiz · Bus → per E-Mail</div>
 </header>
 
 <div class="summary" id="summary">Noch nichts ausgewählt.</div>
@@ -164,6 +165,11 @@
   <textarea id="note" placeholder="Freitext…" autocomplete="off" autocapitalize="sentences"></textarea>
 </section>
 
+<section>
+  <h2>Bus</h2>
+  <div class="grid grid-bus" id="bus"></div>
+</section>
+
 <div class="footer">
   <button class="reset-btn" id="resetBtn" aria-label="Zurücksetzen">↺</button>
   <button class="send-btn" id="sendBtn" disabled>Per E-Mail senden</button>
@@ -174,6 +180,7 @@
 
   const DEFAULT_FIRMS = ["Firma 1", "Firma 2", "Firma 3", "Firma 4", "Firma 5"];
   const WEEKDAYS_SHORT = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+  const BUS_OPTIONS = ["N", "VB", "<1.4t", ">1.4t"];
 
   const state = {
     firms: loadFirms(),
@@ -181,6 +188,7 @@
     firm: null,     // index 0..4
     date: null,     // ISO yyyy-mm-dd
     time: null,     // "HH:MM"
+    bus: null,      // string aus BUS_OPTIONS
   };
 
   function loadFirms() {
@@ -271,6 +279,21 @@
     }
   }
 
+  function renderBus() {
+    const wrap = document.getElementById("bus");
+    wrap.innerHTML = "";
+    BUS_OPTIONS.forEach(opt => {
+      const b = document.createElement("button");
+      b.className = "chip" + (state.bus === opt ? " selected" : "");
+      b.textContent = opt;
+      b.addEventListener("click", () => {
+        state.bus = (state.bus === opt ? null : opt);
+        renderBus(); updateSummary();
+      });
+      wrap.appendChild(b);
+    });
+  }
+
   function selectedDateLabel() {
     if (!state.date) return null;
     const [y, mo, d] = state.date.split("-").map(Number);
@@ -283,10 +306,11 @@
     if (state.firm !== null) parts.push("<b>" + escapeHtml(state.firms[state.firm]) + "</b>");
     if (state.date) parts.push("<b>" + escapeHtml(selectedDateLabel()) + "</b>");
     if (state.time) parts.push("<b>" + state.time + " Uhr</b>");
+    if (state.bus) parts.push("Bus <b>" + escapeHtml(state.bus) + "</b>");
     document.getElementById("summary").innerHTML =
       parts.length ? parts.join(" · ") : "Noch nichts ausgewählt.";
 
-    const ready = state.firm !== null && state.date && state.time;
+    const ready = state.firm !== null && state.date && state.time && state.bus;
     document.getElementById("sendBtn").disabled = !ready;
   }
 
@@ -297,7 +321,7 @@
   }
 
   document.getElementById("sendBtn").addEventListener("click", () => {
-    if (state.firm === null || !state.date || !state.time) return;
+    if (state.firm === null || !state.date || !state.time || !state.bus) return;
 
     if (!state.email) {
       const entered = prompt("An welche E-Mail-Adresse soll's gehen?\n(Wird nur lokal auf dem Handy gespeichert.)", "");
@@ -310,11 +334,12 @@
     const dateLabel = selectedDateLabel();
     const note = document.getElementById("note").value.trim();
 
-    const subject = "Schnellerfassung: " + firm + " – " + dateLabel + " " + state.time;
+    const subject = "Schnellerfassung: " + firm + " – " + dateLabel + " " + state.time + " – Bus " + state.bus;
     const bodyLines = [
       "Firma:    " + firm,
       "Datum:    " + dateLabel,
       "Uhrzeit:  " + state.time + " Uhr",
+      "Bus:      " + state.bus,
       "",
       "Notiz:",
       note || "(keine)"
@@ -326,9 +351,9 @@
   });
 
   document.getElementById("resetBtn").addEventListener("click", () => {
-    state.firm = null; state.date = null; state.time = null;
+    state.firm = null; state.date = null; state.time = null; state.bus = null;
     document.getElementById("note").value = "";
-    renderFirms(); renderDates(); renderTimes(); updateSummary();
+    renderFirms(); renderDates(); renderTimes(); renderBus(); updateSummary();
   });
 
   // Firmennamen + E-Mail umbenennen/setzen
@@ -349,7 +374,7 @@
     renderFirms(); updateSummary();
   });
 
-  renderFirms(); renderDates(); renderTimes(); updateSummary();
+  renderFirms(); renderDates(); renderTimes(); renderBus(); updateSummary();
 </script>
 
 </body>
