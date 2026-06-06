@@ -51,7 +51,7 @@
   .grid {
     display: grid; gap: 10px;
   }
-  .grid-firms   { grid-template-columns: repeat(2, 1fr); }
+  .grid-firms   { grid-template-columns: repeat(3, 1fr); }
   .grid-dates   { grid-template-columns: repeat(2, 1fr); }
   .grid-times   { grid-template-columns: repeat(4, 1fr); }
   .grid-bus     { grid-template-columns: repeat(4, 1fr); }
@@ -184,10 +184,10 @@
 <script>
   const STORAGE_KEY = "schnellerfassung.v1";
 
-  const DEFAULT_FIRMS = ["Firma 1", "Firma 2", "Firma 3", "Firma 4", "Firma 5"];
+  const DEFAULT_FIRMS = ["AE", "AM", "APE+F", "APB", "BUM", "F", "KL", "PR", "RB", "RE", "WE", "WM", "ST", "SCH"];
   const WEEKDAYS_SHORT = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
   const BUS_OPTIONS = ["N", "VB", "<1.4t", ">1.4t"];
-  const DRIVERS = ["Luigi", "Fatih", "Mathias", "Stefan", "Pedro", "Alessandro", "Daniel", "Asen", "Jorgo"];
+  const DRIVERS = ["Luigi", "Fatih", "Mathias", "Stefan", "Pedro", "Alessandro", "Daniel", "Asen", "Jorgo", "Ivan"];
 
   const DEFAULT_PHONE = "01723139615";
 
@@ -211,7 +211,7 @@
       const raw = localStorage.getItem(STORAGE_KEY + ".firms");
       if (raw) {
         const arr = JSON.parse(raw);
-        if (Array.isArray(arr) && arr.length === 5) return arr;
+        if (Array.isArray(arr) && arr.length === DEFAULT_FIRMS.length) return arr;
       }
     } catch (e) {}
     return [...DEFAULT_FIRMS];
@@ -382,7 +382,7 @@
     const note = document.getElementById("note").value.trim();
 
     const lines = [
-      "*Schnellerfassung*",
+      "*Auftrag*",
       "Firma:   " + firm,
       "Datum:   " + dateLabel,
       "Uhrzeit: " + state.time + " Uhr",
@@ -405,9 +405,9 @@
   // Firmennamen + E-Mail umbenennen/setzen
   document.getElementById("editFirms").addEventListener("click", (e) => {
     e.preventDefault();
-    for (let i = 0; i < 5; i++) {
-      const next = prompt("Name für Firma " + (i + 1) + ":", state.firms[i]);
-      if (next === null) return; // Abbruch
+    for (let i = 0; i < state.firms.length; i++) {
+      const next = prompt("Firma " + (i + 1) + " von " + state.firms.length + ":", state.firms[i]);
+      if (next === null) break; // Abbruch → springt direkt zur Nummer-Frage
       const trimmed = next.trim();
       if (trimmed) state.firms[i] = trimmed;
     }
