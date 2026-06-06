@@ -55,6 +55,7 @@
   .grid-dates   { grid-template-columns: repeat(2, 1fr); }
   .grid-times   { grid-template-columns: repeat(4, 1fr); }
   .grid-bus     { grid-template-columns: repeat(4, 1fr); }
+  .grid-drivers { grid-template-columns: repeat(3, 1fr); }
   button.chip {
     appearance: none; border: 1.5px solid var(--border);
     background: var(--card); color: var(--text);
@@ -137,7 +138,7 @@
 
 <header>
   <h1>Schnellerfassung</h1>
-  <div class="subline">Firma · Datum · Uhrzeit · Notiz · Bus → per E-Mail</div>
+  <div class="subline">Firma · Datum · Uhrzeit · Notiz · Bus · Fahrer → per E-Mail</div>
 </header>
 
 <div class="summary" id="summary">Noch nichts ausgewählt.</div>
@@ -170,6 +171,11 @@
   <div class="grid grid-bus" id="bus"></div>
 </section>
 
+<section>
+  <h2>Fahrer</h2>
+  <div class="grid grid-drivers" id="drivers"></div>
+</section>
+
 <div class="footer">
   <button class="reset-btn" id="resetBtn" aria-label="Zurücksetzen">↺</button>
   <button class="send-btn" id="sendBtn" disabled>Per E-Mail senden</button>
@@ -181,6 +187,7 @@
   const DEFAULT_FIRMS = ["Firma 1", "Firma 2", "Firma 3", "Firma 4", "Firma 5"];
   const WEEKDAYS_SHORT = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
   const BUS_OPTIONS = ["N", "VB", "<1.4t", ">1.4t"];
+  const DRIVERS = ["Luigi", "Fatih", "Mathias", "Stefan", "Pedro", "Alessandro", "Daniel", "Asen", "Jorgo"];
 
   const state = {
     firms: loadFirms(),
@@ -189,7 +196,13 @@
     date: null,     // ISO yyyy-mm-dd
     time: null,     // "HH:MM"
     bus: null,      // string aus BUS_OPTIONS
+    driver: null,   // string aus DRIVERS
   };
+
+  function allowedDrivers() {
+    if (state.bus === ">1.4t") return DRIVERS.filter(d => d !== "Luigi");
+    return DRIVERS;
+  }
 
   function loadFirms() {
     try {
@@ -288,7 +301,25 @@
       b.textContent = opt;
       b.addEventListener("click", () => {
         state.bus = (state.bus === opt ? null : opt);
-        renderBus(); updateSummary();
+        if (state.driver && !allowedDrivers().includes(state.driver)) {
+          state.driver = null;
+        }
+        renderBus(); renderDrivers(); updateSummary();
+      });
+      wrap.appendChild(b);
+    });
+  }
+
+  function renderDrivers() {
+    const wrap = document.getElementById("drivers");
+    wrap.innerHTML = "";
+    allowedDrivers().forEach(name => {
+      const b = document.createElement("button");
+      b.className = "chip" + (state.driver === name ? " selected" : "");
+      b.textContent = name;
+      b.addEventListener("click", () => {
+        state.driver = (state.driver === name ? null : name);
+        renderDrivers(); updateSummary();
       });
       wrap.appendChild(b);
     });
@@ -307,10 +338,11 @@
     if (state.date) parts.push("<b>" + escapeHtml(selectedDateLabel()) + "</b>");
     if (state.time) parts.push("<b>" + state.time + " Uhr</b>");
     if (state.bus) parts.push("Bus <b>" + escapeHtml(state.bus) + "</b>");
+    if (state.driver) parts.push("Fahrer <b>" + escapeHtml(state.driver) + "</b>");
     document.getElementById("summary").innerHTML =
       parts.length ? parts.join(" · ") : "Noch nichts ausgewählt.";
 
-    const ready = state.firm !== null && state.date && state.time && state.bus;
+    const ready = state.firm !== null && state.date && state.time && state.bus && state.driver;
     document.getElementById("sendBtn").disabled = !ready;
   }
 
@@ -321,7 +353,7 @@
   }
 
   document.getElementById("sendBtn").addEventListener("click", () => {
-    if (state.firm === null || !state.date || !state.time || !state.bus) return;
+    if (state.firm === null || !state.date || !state.time || !state.bus || !state.driver) return;
 
     if (!state.email) {
       const entered = prompt("An welche E-Mail-Adresse soll's gehen?\n(Wird nur lokal auf dem Handy gespeichert.)", "");
@@ -334,12 +366,13 @@
     const dateLabel = selectedDateLabel();
     const note = document.getElementById("note").value.trim();
 
-    const subject = "Schnellerfassung: " + firm + " – " + dateLabel + " " + state.time + " – Bus " + state.bus;
+    const subject = "Schnellerfassung: " + firm + " – " + dateLabel + " " + state.time + " – Bus " + state.bus + " – " + state.driver;
     const bodyLines = [
       "Firma:    " + firm,
       "Datum:    " + dateLabel,
       "Uhrzeit:  " + state.time + " Uhr",
       "Bus:      " + state.bus,
+      "Fahrer:   " + state.driver,
       "",
       "Notiz:",
       note || "(keine)"
@@ -351,9 +384,9 @@
   });
 
   document.getElementById("resetBtn").addEventListener("click", () => {
-    state.firm = null; state.date = null; state.time = null; state.bus = null;
+    state.firm = null; state.date = null; state.time = null; state.bus = null; state.driver = null;
     document.getElementById("note").value = "";
-    renderFirms(); renderDates(); renderTimes(); renderBus(); updateSummary();
+    renderFirms(); renderDates(); renderTimes(); renderBus(); renderDrivers(); updateSummary();
   });
 
   // Firmennamen + E-Mail umbenennen/setzen
@@ -374,7 +407,7 @@
     renderFirms(); updateSummary();
   });
 
-  renderFirms(); renderDates(); renderTimes(); renderBus(); updateSummary();
+  renderFirms(); renderDates(); renderTimes(); renderBus(); renderDrivers(); updateSummary();
 </script>
 
 </body>
