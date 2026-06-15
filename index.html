@@ -222,6 +222,127 @@
   .voice-stop  { background: var(--ok); color: white; }
   .voice-cancel{ background: var(--muted); color: var(--text); }
   .voice-error { color: #f87171; font-size: 13px; margin-top: 10px; min-height: 18px; }
+
+  /* zweiter Knopf in der voice-zone */
+  .voice-zone .voice-btn + .voice-btn { margin-top: 10px; }
+  .record-btn {
+    border-color: #ef4444 !important;
+    background: rgba(239, 68, 68, 0.10) !important;
+  }
+
+  /* ===== Aufnahme-Modal ===== */
+  .record-overlay {
+    position: fixed; inset: 0;
+    background: rgba(15, 23, 42, 0.96);
+    display: none; align-items: center; justify-content: center;
+    z-index: 1000; padding: 20px;
+  }
+  .record-overlay.show { display: flex; }
+  .record-modal {
+    background: var(--card); border: 1.5px solid var(--border);
+    border-radius: 18px; padding: 22px;
+    width: 100%; max-width: 500px; text-align: center;
+  }
+  .record-status {
+    font-size: 18px; font-weight: 600; margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .record-dot {
+    width: 14px; height: 14px; border-radius: 50%; background: #ef4444;
+    animation: voicePulse 1.2s ease-in-out infinite;
+  }
+  .record-counter {
+    font-size: 48px; font-weight: 700; letter-spacing: 0.05em;
+    color: var(--text); margin: 12px 0 18px;
+    font-variant-numeric: tabular-nums;
+  }
+  .record-transcript {
+    min-height: 70px; max-height: 140px; overflow-y: auto;
+    padding: 12px; border-radius: 10px;
+    background: rgba(0,0,0,0.35); color: var(--text);
+    font-size: 14px; line-height: 1.4;
+    text-align: left; margin-bottom: 14px;
+    white-space: pre-wrap; word-wrap: break-word;
+  }
+  .record-transcript .ph { color: var(--sub); font-style: italic; }
+
+  /* ===== Sprachnotizen-Liste ===== */
+  #notesSection { padding-top: 12px; }
+  #notesSection h2 .clear-link { float: right; }
+  .note-item {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .note-item.done { opacity: 0.55; }
+  .note-meta {
+    font-size: 14px; color: var(--text); margin-bottom: 6px;
+  }
+  .note-meta b { color: var(--text); }
+  .note-tag {
+    background: rgba(59,130,246,0.18); color: var(--accent);
+    padding: 2px 8px; border-radius: 8px;
+    font-weight: 600; font-size: 13px;
+  }
+  .note-transcript {
+    font-size: 13px; color: var(--sub);
+    margin-bottom: 10px;
+    max-height: 60px; overflow: hidden;
+    line-height: 1.4;
+  }
+  .note-item.done .note-transcript { text-decoration: line-through; }
+  .note-actions { display: flex; gap: 8px; }
+  .note-actions button {
+    flex: 1; appearance: none;
+    background: var(--muted); color: var(--text);
+    border: 0; padding: 10px;
+    border-radius: 10px; font-size: 16px;
+    touch-action: manipulation;
+  }
+  .note-actions button:active { transform: scale(0.97); }
+
+  /* ===== Mini-Player (sticky über Footer) ===== */
+  .mini-player {
+    position: fixed; left: 0; right: 0;
+    bottom: calc(env(safe-area-inset-bottom) + 84px);   /* über Footer */
+    background: var(--card);
+    border-top: 1.5px solid var(--border);
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 12px;
+    z-index: 50;
+  }
+  .mini-player[hidden] { display: none; }
+  .mp-pp {
+    width: 44px; height: 44px; border-radius: 50%;
+    appearance: none; border: 0;
+    background: var(--accent); color: white;
+    font-size: 18px; font-weight: 700;
+    touch-action: manipulation;
+  }
+  .mp-info { flex: 1; min-width: 0; }
+  .mp-title {
+    font-size: 14px; font-weight: 600; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .mp-time { font-size: 12px; color: var(--sub); font-variant-numeric: tabular-nums; }
+  .mp-close {
+    width: 36px; height: 36px;
+    appearance: none; border: 0; background: transparent;
+    color: var(--sub); font-size: 22px;
+  }
+  body.player-active { padding-bottom: calc(env(safe-area-inset-bottom) + 156px); }
+
+  /* ===== Tag-Dialog ===== */
+  .tag-input {
+    width: 100%; padding: 12px 14px;
+    font-size: 17px; font-family: inherit;
+    background: rgba(0,0,0,0.3); color: var(--text);
+    border: 1.5px solid var(--border); border-radius: 10px;
+    margin-bottom: 14px;
+  }
+  .tag-input:focus { outline: none; border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -238,9 +359,20 @@
     <span class="mic">🎤</span>
     <span>Per Stimme erfassen</span>
   </button>
+  <button class="voice-btn record-btn" id="recordBtn">
+    <span class="mic">🎙</span>
+    <span>Sprachnotiz aufnehmen</span>
+  </button>
 </div>
 
 <div class="voice-feedback" id="voiceFeedback"></div>
+
+<section id="notesSection" hidden>
+  <h2>Sprachnotizen
+    <a href="#" class="edit-link clear-link" id="clearDoneLink">erledigte löschen</a>
+  </h2>
+  <div id="notesList"></div>
+</section>
 
 <section>
   <h2>
@@ -275,9 +407,56 @@
   <div class="grid grid-drivers" id="drivers"></div>
 </section>
 
+<!-- Mini-Player: bleibt sichtbar, App weiter bedienbar -->
+<div class="mini-player" id="miniPlayer" hidden>
+  <button class="mp-pp" id="ppBtn">▶</button>
+  <div class="mp-info">
+    <div class="mp-title" id="mpTitle"></div>
+    <div class="mp-time"  id="mpTime">0:00 / 0:00</div>
+  </div>
+  <button class="mp-close" id="closePlayerBtn" aria-label="Player schließen">×</button>
+  <audio id="audioEl" preload="metadata"></audio>
+</div>
+
 <div class="footer">
   <button class="reset-btn" id="resetBtn" aria-label="Zurücksetzen">↺</button>
   <button class="send-btn" id="sendBtn" disabled>Per WhatsApp senden</button>
+</div>
+
+<!-- Aufnahme-Modal -->
+<div class="record-overlay" id="recordOverlay" aria-hidden="true">
+  <div class="record-modal">
+    <div class="record-status">
+      <span class="record-dot"></span>
+      <span>Aufnahme läuft</span>
+    </div>
+    <div class="record-counter" id="recordCounter">0:00</div>
+    <div class="record-transcript" id="recordTranscript">
+      <span class="ph">Beim Sprechen läuft die Erkennung mit für eine Vorschau …</span>
+    </div>
+    <div class="voice-actions">
+      <button class="voice-cancel" id="recordCancel">Abbrechen</button>
+      <button class="voice-stop"   id="recordStop">Aufnahme beenden</button>
+    </div>
+    <div class="voice-error" id="recordError"></div>
+  </div>
+</div>
+
+<!-- Tag-Dialog nach der Aufnahme -->
+<div class="record-overlay" id="tagOverlay" aria-hidden="true">
+  <div class="record-modal" style="text-align:left">
+    <div style="font-size:18px; font-weight:600; margin-bottom:6px">Kurzes Stichwort?</div>
+    <div style="color:var(--sub); font-size:13px; margin-bottom:14px">
+      Optional. Hilft später beim Wiederfinden.
+    </div>
+    <input class="tag-input" id="tagInput" type="text" maxlength="24"
+      placeholder="z.B. AE, Lehel, Knott …"
+      autocomplete="off" autocapitalize="characters">
+    <div class="voice-actions">
+      <button class="voice-cancel" id="tagSkip">Überspringen</button>
+      <button class="voice-stop"   id="tagSave">Speichern</button>
+    </div>
+  </div>
 </div>
 
 <!-- Spracherkennungs-Modal -->
@@ -875,6 +1054,348 @@
     b.querySelector("span:last-child").textContent =
       "Sprache nicht unterstützt (Browser)";
   }
+
+  // ===================================================================
+  // SPRACHNOTIZEN: IndexedDB + Aufnahme + Mini-Player + Auto-Cleanup
+  // ===================================================================
+
+  const DB_NAME = "schnellerfassung";
+  const DB_VERSION = 1;
+  const STORE = "voice_notes";
+  const CLEANUP_DAYS = 7;
+
+  let dbPromise = null;
+  function getDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      if (!window.indexedDB) return reject(new Error("IndexedDB nicht verfügbar"));
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(STORE)) {
+          const s = db.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
+          s.createIndex("createdAt", "createdAt");
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror   = () => reject(req.error);
+    });
+    return dbPromise;
+  }
+  async function dbAdd(rec)        { const db = await getDB(); return new Promise((res, rej) => { const r = db.transaction(STORE, "readwrite").objectStore(STORE).add(rec); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+  async function dbAll()            { const db = await getDB(); return new Promise((res, rej) => { const r = db.transaction(STORE, "readonly").objectStore(STORE).getAll(); r.onsuccess = () => res(r.result.sort((a,b) => b.createdAt - a.createdAt)); r.onerror = () => rej(r.error); }); }
+  async function dbDelete(id)       { const db = await getDB(); return new Promise((res, rej) => { const r = db.transaction(STORE, "readwrite").objectStore(STORE).delete(id); r.onsuccess = () => res(); r.onerror = () => rej(r.error); }); }
+  async function dbPatch(id, patch) {
+    const db = await getDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(STORE, "readwrite");
+      const s  = tx.objectStore(STORE);
+      const g  = s.get(id);
+      g.onsuccess = () => {
+        const obj = g.result; if (!obj) return rej(new Error("not found"));
+        Object.assign(obj, patch);
+        const p = s.put(obj);
+        p.onsuccess = () => res(); p.onerror = () => rej(p.error);
+      };
+      g.onerror = () => rej(g.error);
+    });
+  }
+
+  function formatSec(s) {
+    const m = Math.floor(s / 60);
+    return m + ":" + (s % 60 < 10 ? "0" + (s % 60) : (s % 60));
+  }
+
+  // ---- Auto-Cleanup: erledigte Notizen, älter als 7 Tage ----
+  async function cleanupOldNotes() {
+    const cutoff = Date.now() - CLEANUP_DAYS * 24 * 60 * 60 * 1000;
+    const all = await dbAll();
+    for (const n of all) {
+      if (n.done && n.doneAt && n.doneAt < cutoff) {
+        await dbDelete(n.id);
+      }
+    }
+  }
+
+  // ---- Aufnahme ----
+  let recState = {
+    recorder: null, stream: null, chunks: [],
+    startTime: 0, timer: null,
+    parallelRec: null, transcript: "",
+    cancelled: false,
+  };
+
+  function getSupportedAudioMime() {
+    if (!window.MediaRecorder) return null;
+    const types = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"];
+    for (const t of types) if (MediaRecorder.isTypeSupported(t)) return t;
+    return "";
+  }
+
+  async function startRecording() {
+    if (!window.MediaRecorder) {
+      alert("Audio-Aufnahme wird in diesem Browser nicht unterstützt.");
+      return;
+    }
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      alert("Mikrofon-Zugriff verweigert.");
+      return;
+    }
+    const mime = getSupportedAudioMime();
+    let rec;
+    try {
+      rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+    } catch (e) {
+      stream.getTracks().forEach(t => t.stop());
+      alert("Aufnahme konnte nicht gestartet werden.");
+      return;
+    }
+
+    recState = { recorder: rec, stream, chunks: [], startTime: Date.now(),
+                 timer: null, parallelRec: null, transcript: "", cancelled: false };
+
+    rec.ondataavailable = (e) => { if (e.data && e.data.size > 0) recState.chunks.push(e.data); };
+    rec.onstop = async () => {
+      const wasCancelled = recState.cancelled;
+      const durationMs   = Date.now() - recState.startTime;
+      stopRecordingUI();
+      if (recState.parallelRec) try { recState.parallelRec.stop(); } catch(e){}
+      if (recState.stream) recState.stream.getTracks().forEach(t => t.stop());
+      if (wasCancelled) return;
+      const blob = new Blob(recState.chunks, { type: mime || "audio/webm" });
+      const tag  = await askTag();
+      await dbAdd({
+        blob, duration: durationMs,
+        transcript: recState.transcript.trim(),
+        tag: tag || "",
+        done: false, doneAt: null,
+        createdAt: Date.now(),
+      });
+      await renderNotes();
+    };
+
+    rec.start();
+    startRecordingUI();
+    startParallelRecognition();
+  }
+
+  function startRecordingUI() {
+    const overlay = document.getElementById("recordOverlay");
+    overlay.classList.add("show");
+    overlay.setAttribute("aria-hidden", "false");
+    document.getElementById("recordError").textContent = "";
+    document.getElementById("recordCounter").textContent = "0:00";
+    document.getElementById("recordTranscript").innerHTML =
+      '<span class="ph">Beim Sprechen läuft die Erkennung mit …</span>';
+    recState.timer = setInterval(() => {
+      const sec = Math.floor((Date.now() - recState.startTime) / 1000);
+      document.getElementById("recordCounter").textContent =
+        Math.floor(sec / 60) + ":" + (sec % 60 < 10 ? "0" + (sec % 60) : (sec % 60));
+    }, 250);
+  }
+
+  function stopRecordingUI() {
+    document.getElementById("recordOverlay").classList.remove("show");
+    document.getElementById("recordOverlay").setAttribute("aria-hidden", "true");
+    if (recState.timer) clearInterval(recState.timer);
+  }
+
+  function startParallelRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    const p = new SR();
+    p.lang = "de-DE"; p.continuous = true; p.interimResults = true;
+    let finalText = "";
+    p.onresult = (e) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalText += t + " ";
+        else interim += t;
+      }
+      const combined = (finalText + interim).trim();
+      recState.transcript = combined;
+      document.getElementById("recordTranscript").textContent = combined || "…";
+    };
+    p.onerror = () => {};
+    try { p.start(); recState.parallelRec = p; } catch(e){}
+  }
+
+  function askTag() {
+    return new Promise((resolve) => {
+      const overlay = document.getElementById("tagOverlay");
+      const input   = document.getElementById("tagInput");
+      input.value = "";
+      overlay.classList.add("show");
+      overlay.setAttribute("aria-hidden", "false");
+      setTimeout(() => input.focus(), 80);
+      const done = (val) => {
+        overlay.classList.remove("show");
+        overlay.setAttribute("aria-hidden", "true");
+        input.onkeydown = null;
+        resolve(val);
+      };
+      document.getElementById("tagSkip").onclick = () => done("");
+      document.getElementById("tagSave").onclick = () => done(input.value.trim());
+      input.onkeydown = (e) => {
+        if (e.key === "Enter") { e.preventDefault(); done(input.value.trim()); }
+      };
+    });
+  }
+
+  // ---- Mini-Player ----
+  let currentPlayingId = null;
+
+  function playNote(n) {
+    const audio  = document.getElementById("audioEl");
+    const player = document.getElementById("miniPlayer");
+
+    // Wenn dieselbe Notiz läuft → Pause-Toggle
+    if (currentPlayingId === n.id) {
+      if (audio.paused) audio.play(); else audio.pause();
+      return;
+    }
+    // Neue Notiz → vorherige stoppen, Source wechseln
+    if (audio.src) { audio.pause(); URL.revokeObjectURL(audio.src); }
+    audio.src = URL.createObjectURL(n.blob);
+    currentPlayingId = n.id;
+
+    const dt = new Date(n.createdAt);
+    const stamp = pad(dt.getDate()) + "." + pad(dt.getMonth() + 1) + ". " +
+                  pad(dt.getHours()) + ":" + pad(dt.getMinutes());
+    document.getElementById("mpTitle").textContent = n.tag ? n.tag + " · " + stamp : stamp;
+
+    player.hidden = false;
+    document.body.classList.add("player-active");
+    audio.play().catch(() => {});
+  }
+
+  function setupPlayer() {
+    const audio = document.getElementById("audioEl");
+    const ppBtn = document.getElementById("ppBtn");
+    const time  = document.getElementById("mpTime");
+    audio.addEventListener("timeupdate", () => {
+      if (!isFinite(audio.duration)) return;
+      time.textContent = formatSec(Math.floor(audio.currentTime)) + " / " + formatSec(Math.floor(audio.duration));
+    });
+    audio.addEventListener("loadedmetadata", () => {
+      if (isFinite(audio.duration)) time.textContent = "0:00 / " + formatSec(Math.floor(audio.duration));
+    });
+    audio.addEventListener("play",  () => { ppBtn.textContent = "⏸"; });
+    audio.addEventListener("pause", () => { ppBtn.textContent = "▶"; });
+    audio.addEventListener("ended", () => { ppBtn.textContent = "▶"; });
+
+    ppBtn.onclick = () => { if (audio.paused) audio.play(); else audio.pause(); };
+    document.getElementById("closePlayerBtn").onclick = () => {
+      audio.pause();
+      if (audio.src) URL.revokeObjectURL(audio.src);
+      audio.removeAttribute("src");
+      currentPlayingId = null;
+      document.getElementById("miniPlayer").hidden = true;
+      document.body.classList.remove("player-active");
+    };
+  }
+
+  // ---- Liste rendern ----
+  async function renderNotes() {
+    const notes = await dbAll();
+    const section = document.getElementById("notesSection");
+    const list    = document.getElementById("notesList");
+    list.innerHTML = "";
+    if (!notes.length) { section.hidden = true; return; }
+    section.hidden = false;
+
+    for (const n of notes) {
+      const item = document.createElement("div");
+      item.className = "note-item" + (n.done ? " done" : "");
+
+      const dt = new Date(n.createdAt);
+      const dateStr = pad(dt.getDate()) + "." + pad(dt.getMonth() + 1) + ".";
+      const timeStr = pad(dt.getHours()) + ":" + pad(dt.getMinutes());
+      const durSec  = Math.round(n.duration / 1000);
+      const durStr  = Math.floor(durSec / 60) + ":" + (durSec % 60 < 10 ? "0" + (durSec % 60) : (durSec % 60));
+
+      const meta = document.createElement("div");
+      meta.className = "note-meta";
+      meta.innerHTML = "<b>" + dateStr + " " + timeStr + "</b> · " + durStr
+        + (n.tag ? " · <span class='note-tag'>" + escapeHtml(n.tag) + "</span>" : "");
+
+      const transcript = document.createElement("div");
+      transcript.className = "note-transcript";
+      transcript.textContent = n.transcript || "(kein Transkript)";
+
+      const actions = document.createElement("div");
+      actions.className = "note-actions";
+
+      const playBtn = document.createElement("button");
+      playBtn.innerHTML = (currentPlayingId === n.id) ? "⏸ Pause" : "▶ Abspielen";
+      playBtn.onclick = () => playNote(n);
+
+      const doneBtn = document.createElement("button");
+      doneBtn.textContent = n.done ? "↺ offen" : "✓ erledigt";
+      doneBtn.onclick = async () => {
+        await dbPatch(n.id, n.done
+          ? { done: false, doneAt: null }
+          : { done: true,  doneAt: Date.now() });
+        await renderNotes();
+      };
+
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "🗑";
+      delBtn.style.flex = "0 0 50px";
+      delBtn.onclick = async () => {
+        if (!confirm("Sprachnotiz löschen?")) return;
+        if (currentPlayingId === n.id) {
+          document.getElementById("audioEl").pause();
+          currentPlayingId = null;
+          document.getElementById("miniPlayer").hidden = true;
+          document.body.classList.remove("player-active");
+        }
+        await dbDelete(n.id);
+        await renderNotes();
+      };
+
+      actions.appendChild(playBtn);
+      actions.appendChild(doneBtn);
+      actions.appendChild(delBtn);
+      item.append(meta, transcript, actions);
+      list.appendChild(item);
+    }
+  }
+
+  // ---- Hooks ----
+  document.getElementById("recordBtn").addEventListener("click", startRecording);
+  document.getElementById("recordStop").addEventListener("click", () => {
+    const r = recState.recorder;
+    if (r && r.state !== "inactive") try { r.stop(); } catch(e){}
+  });
+  document.getElementById("recordCancel").addEventListener("click", () => {
+    recState.cancelled = true;
+    const r = recState.recorder;
+    if (r && r.state !== "inactive") try { r.stop(); } catch(e){}
+  });
+  document.getElementById("clearDoneLink").addEventListener("click", async (e) => {
+    e.preventDefault();
+    const notes = await dbAll();
+    const dones = notes.filter(n => n.done);
+    if (!dones.length) return;
+    if (!confirm("Alle " + dones.length + " erledigten Sprachnotizen löschen?")) return;
+    for (const n of dones) await dbDelete(n.id);
+    await renderNotes();
+  });
+
+  // Browser ohne MediaRecorder: Aufnahme-Knopf deaktivieren
+  if (!window.MediaRecorder) {
+    const b = document.getElementById("recordBtn");
+    b.style.opacity = "0.5";
+    b.querySelector("span:last-child").textContent = "Aufnahme nicht unterstützt (Browser)";
+  }
+
+  setupPlayer();
+  cleanupOldNotes().then(renderNotes).catch(() => renderNotes());
 
   renderFirms(); renderDates(); renderTimes(); renderBus(); renderDrivers(); updateSummary();
 </script>
