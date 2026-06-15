@@ -288,7 +288,8 @@
       <span id="voiceStatusText">Höre zu …</span>
     </div>
     <div class="voice-hint">
-      Beispiel: „<i>AE morgen vierzehn Uhr Bus VB Luigi nach Schwabing</i>“
+      Beispiel: „<i>AE morgen vierzehn Uhr Bus VB Fahrer 2 nach Schwabing</i>“<br>
+      Fahrer per Nummer (1–10) oder Name.
     </div>
     <div class="voice-transcript" id="voiceTranscript">
       <span class="ph">Sprich jetzt …</span>
@@ -449,9 +450,12 @@
     const wrap = document.getElementById("drivers");
     wrap.innerHTML = "";
     allowedDrivers().forEach(name => {
+      const num = DRIVERS.indexOf(name) + 1; // feste Nummer aus Original-Liste
       const b = document.createElement("button");
       b.className = "chip" + (state.driver === name ? " selected" : "");
-      b.textContent = name;
+      b.innerHTML = '<span></span><span class="sub"></span>';
+      b.children[0].textContent = name;
+      b.children[1].textContent = "Fahrer " + num;
       b.addEventListener("click", () => {
         state.driver = (state.driver === name ? null : name);
         renderDrivers(); updateSummary();
@@ -682,18 +686,36 @@
   }
 
   // --- FAHRER ------------------------------------------------------
+  // Typische Fehl-Transkriptionen pro Fahrer.
+  // Wenn dir beim Testen weitere Varianten auffallen, hier ergänzen.
+  const DRIVER_ALIASES = {
+    "Luigi":     ["luggi", "luiji", "ludwig"],
+    "Fatih":     ["vati", "fati", "fattih", "fartih", "warti", "fadi", "fatti", "vatih"],
+    "Mathias":   ["matthias", "matias", "mathis", "matheas"],
+    "Stefan":    ["steffen", "stephan", "tefan", "stefen"],
+    "Pedro":     ["petro", "pedo"],
+    "Alessandro":["alex", "sandro", "ales", "lessandro"],
+    "Daniel":    ["danny", "dani"],
+    "Asen":      ["assen", "ason", "ahsen"],  // bewusst NICHT "essen" (Stadt-Konflikt)
+    "Jorgo":     ["jorge", "georgo", "jürgo", "yorgo", "jorgio"],
+    "Ivan":      ["yvan", "iwan", "evan", "ifan"],
+  };
+
   function parseDriverValue(text) {
     const t = text.toLowerCase();
-    // Synonyme / typische Fehl-Transkriptionen
-    const aliases = {
-      "Mathias":   ["matthias", "matias"],
-      "Jorgo":     ["jorge", "georgo"],
-      "Alessandro":["alex"],
-      "Fatih":     ["fati"],
-    };
+
+    // 1) Nummer: "fahrer 1" / "fahrer eins" / "nr 2" / "nummer 3"
+    const tn = wordsToNumbers(t);
+    const num = tn.match(/\b(?:fahrer|nr\.?|nummer)\s*(\d{1,2})\b/);
+    if (num) {
+      const idx = parseInt(num[1]) - 1;
+      if (idx >= 0 && idx < DRIVERS.length) return DRIVERS[idx];
+    }
+
+    // 2) Namen + Aliase
     for (const name of DRIVERS) {
       if (new RegExp("\\b" + escapeRegex(name.toLowerCase()) + "\\b").test(t)) return name;
-      const alts = aliases[name] || [];
+      const alts = DRIVER_ALIASES[name] || [];
       for (const alt of alts) {
         if (new RegExp("\\b" + escapeRegex(alt) + "\\b").test(t)) return name;
       }
